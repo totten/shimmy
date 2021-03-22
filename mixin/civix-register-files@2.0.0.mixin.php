@@ -15,6 +15,11 @@ return function ($mixInfo, $bootCache) {
    * @see CRM_Utils_Hook::xmlMenu()
    */
   Civi::dispatcher()->addListener('hook_civicrm_xmlMenu', function ($e) use ($mixInfo) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive()) {
+      return;
+    }
+
     $files = (array) glob($mixInfo->getPath('xml/Menu/*.xml'));
     foreach ($files as $file) {
       $e->files[] = $file;
@@ -28,7 +33,8 @@ return function ($mixInfo, $bootCache) {
    * @see CRM_Utils_Hook::caseTypes()
    */
   Civi::dispatcher()->addListener('hook_civicrm_caseTypes', function ($e) use ($mixInfo) {
-    if (!is_dir(__DIR__ . '/xml/case')) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive() || !is_dir(__DIR__ . '/xml/case')) {
       return;
     }
 
@@ -53,7 +59,8 @@ return function ($mixInfo, $bootCache) {
    * @see CRM_Utils_Hook::angularModules()
    */
   Civi::dispatcher()->addListener('hook_civicrm_angularModules', function ($e) use ($mixInfo) {
-    if (!is_dir($mixInfo->getPath('ang'))) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive() || !is_dir($mixInfo->getPath('ang'))) {
       return;
     }
 
@@ -75,6 +82,10 @@ return function ($mixInfo, $bootCache) {
    * @see CRM_Utils_Hook::themes()
    */
   Civi::dispatcher()->addListener('hook_civicrm_themes', function ($e) use ($mixInfo) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive()) {
+      return;
+    }
     $files = (array) glob($mixInfo->getPath('*.theme.php'));
     foreach ($files as $file) {
       $themeMeta = include $file;
@@ -95,6 +106,11 @@ return function ($mixInfo, $bootCache) {
    * @see CRM_Utils_Hook::alterSettingsFolders()
    */
   Civi::dispatcher()->addListener('hook_civicrm_alterSettingsFolders', function ($e) use ($mixInfo) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive()) {
+      return;
+    }
+
     $settingsDir = $mixInfo->getPath('settings');
     if (!in_array($settingsDir, $e->metaDataFolders) && is_dir($settingsDir)) {
       $e->metaDataFolders[] = $settingsDir;
@@ -109,6 +125,11 @@ return function ($mixInfo, $bootCache) {
    */
 
   Civi::dispatcher()->addListener('hook_civicrm_managed', function ($event) use ($mixInfo) {
+    // When deactivating on a polyfill/pre-mixin system, listeners may not cleanup automatically.
+    if (!$mixInfo->isActive()) {
+      return;
+    }
+
     $mgdFiles = CRM_Utils_File::findFiles($mixInfo->getPath(), '*.mgd.php');
     sort($mgdFiles);
     foreach ($mgdFiles as $file) {

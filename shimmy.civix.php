@@ -107,7 +107,7 @@ function _shimmy_civix_civicrm_config(&$config = NULL) {
   set_include_path($include_path);
 
   if (!class_exists('CRM_Extension_MixInfo')) {
-    _shimmy_civix_mixin(['civix-register-files@2.0.0']);
+    _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
   }
 }
 
@@ -120,6 +120,9 @@ function _shimmy_civix_civicrm_install() {
   _shimmy_civix_civicrm_config();
   if ($upgrader = _shimmy_civix_upgrader()) {
     $upgrader->onInstall();
+  }
+  if (!class_exists('CRM_Extension_MixInfo')) {
+    _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
   }
 }
 
@@ -159,6 +162,9 @@ function _shimmy_civix_civicrm_enable() {
   if ($upgrader = _shimmy_civix_upgrader()) {
     if (is_callable([$upgrader, 'onEnable'])) {
       $upgrader->onEnable();
+    }
+    if (!class_exists('CRM_Extension_MixInfo')) {
+      _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
     }
   }
 }
@@ -301,6 +307,10 @@ function _shimmy_civix_civicrm_entityTypes(&$entityTypes) {
   $entityTypes = array_merge($entityTypes, []);
 }
 
+function _shimmy_civix_mixin_defaults() {
+  return ['civix-register-files@2.0'];
+}
+
 /**
  * When deploying on systems that lack mixin support, fake it.
  *
@@ -318,16 +328,25 @@ function _shimmy_civix_mixin($mixins) {
       return E::path($relPath);
     }
 
+    public function isActive() {
+      return \CRM_Extension_System::singleton()->getMapper()->isActiveModule(E::SHORT_NAME);
+    }
+
   };
   $mixInfo->longName = E::LONG_NAME;
   $mixInfo->shortName = E::SHORT_NAME;
 
   global $_CIVIX_MIXIN_POLYFILL;
   foreach ($mixins as $mixin) {
+    // If the exact same mixin is defined by multiple exts, just use the first one.
     if (!isset($_CIVIX_MIXIN_POLYFILL[$mixin])) {
       $_CIVIX_MIXIN_POLYFILL[$mixin] = __DIR__ . '/mixin/' . $mixin . '.mixin.php';
     }
-    $func = include $_CIVIX_MIXIN_POLYFILL[$mixin];
-    $func($mixInfo, NULL);
+    // If there's trickery about installs/uninstalls/resets, then we may need to register a second time.
+    if (!isset(\Civi::$statics[__FUNCTION__][$mixin])) {
+      \Civi::$statics[__FUNCTION__][$mixin] = 1;
+      $func = include $_CIVIX_MIXIN_POLYFILL[$mixin];
+      $func($mixInfo, NULL);
+    }
   }
 }
