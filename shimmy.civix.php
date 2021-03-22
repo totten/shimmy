@@ -105,6 +105,10 @@ function _shimmy_civix_civicrm_config(&$config = NULL) {
 
   $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
   set_include_path($include_path);
+
+  if (!class_exists('CRM_Extension_MixInfo')) {
+    _shimmy_civix_mixin(['civix-register-files@2.0.0']);
+  }
 }
 
 /**
@@ -295,4 +299,35 @@ function _shimmy_civix_fixNavigationMenuItems(&$nodes, &$maxNavID, $parentID) {
  */
 function _shimmy_civix_civicrm_entityTypes(&$entityTypes) {
   $entityTypes = array_merge($entityTypes, []);
+}
+
+/**
+ * When deploying on systems that lack mixin support, fake it.
+ *
+ * This polyfill does some (persnickity) deduplication, but it doesn't allow upgrades or shipping replacements in core.
+ *
+ * @param string[] $mixins
+ *   Symbolic names. Only use mixins that are shipped with this extension.
+ */
+function _shimmy_civix_mixin($mixins) {
+  $mixInfo = new class() {
+    public $longName;
+    public $shortName;
+
+    public function getPath($relPath = NULL) {
+      return E::path($relPath);
+    }
+
+  };
+  $mixInfo->longName = E::LONG_NAME;
+  $mixInfo->shortName = E::SHORT_NAME;
+
+  global $_CIVIX_MIXIN_POLYFILL;
+  foreach ($mixins as $mixin) {
+    if (!isset($_CIVIX_MIXIN_POLYFILL[$mixin])) {
+      $_CIVIX_MIXIN_POLYFILL[$mixin] = __DIR__ . '/mixin/' . $mixin . '.mixin.php';
+    }
+    $func = include $_CIVIX_MIXIN_POLYFILL[$mixin];
+    $func($mixInfo, NULL);
+  }
 }
