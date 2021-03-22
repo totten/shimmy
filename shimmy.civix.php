@@ -2,6 +2,10 @@
 
 // AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file
 
+if (!class_exists('CRM_Extension_MixInfo')) {
+  require_once 'shimmy.mixin.php';
+}
+
 /**
  * The ExtensionUtil class provides small stubs for accessing resources of this
  * extension.
@@ -305,48 +309,4 @@ function _shimmy_civix_fixNavigationMenuItems(&$nodes, &$maxNavID, $parentID) {
  */
 function _shimmy_civix_civicrm_entityTypes(&$entityTypes) {
   $entityTypes = array_merge($entityTypes, []);
-}
-
-function _shimmy_civix_mixin_defaults() {
-  return ['civix-register-files@2.0'];
-}
-
-/**
- * When deploying on systems that lack mixin support, fake it.
- *
- * This polyfill does some (persnickity) deduplication, but it doesn't allow upgrades or shipping replacements in core.
- *
- * @param string[] $mixins
- *   Symbolic names. Only use mixins that are shipped with this extension.
- */
-function _shimmy_civix_mixin($mixins) {
-  $mixInfo = new class() {
-    public $longName;
-    public $shortName;
-
-    public function getPath($relPath = NULL) {
-      return E::path($relPath);
-    }
-
-    public function isActive() {
-      return \CRM_Extension_System::singleton()->getMapper()->isActiveModule(E::SHORT_NAME);
-    }
-
-  };
-  $mixInfo->longName = E::LONG_NAME;
-  $mixInfo->shortName = E::SHORT_NAME;
-
-  global $_CIVIX_MIXIN_POLYFILL;
-  foreach ($mixins as $mixin) {
-    // If the exact same mixin is defined by multiple exts, just use the first one.
-    if (!isset($_CIVIX_MIXIN_POLYFILL[$mixin])) {
-      $_CIVIX_MIXIN_POLYFILL[$mixin] = __DIR__ . '/mixin/' . $mixin . '.mixin.php';
-    }
-    // If there's trickery about installs/uninstalls/resets, then we may need to register a second time.
-    if (!isset(\Civi::$statics[__FUNCTION__][$mixin])) {
-      \Civi::$statics[__FUNCTION__][$mixin] = 1;
-      $func = include $_CIVIX_MIXIN_POLYFILL[$mixin];
-      $func($mixInfo, NULL);
-    }
-  }
 }
