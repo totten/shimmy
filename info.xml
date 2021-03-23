@@ -23,6 +23,7 @@
   <mixins>
     <mixin>civix-register-files@2.0</mixin>
     <mixin>civi-auto-hook@0.1</mixin>
+    <mixin>civi-auto-subscriber@0.1</mixin>
   </mixins>
   <comments>This is a new, undeveloped module</comments>
   <classloader>
