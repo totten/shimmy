@@ -77,7 +77,7 @@ function _shimmy_civix_mixin($mixins) {
       }
       else {
         $data = $callback();
-        file_put_contents($file, '<' . "?php\nreturn " . var_export($data, 1));
+        file_put_contents($file, '<' . "?php\nreturn " . var_export($data, 1) . ';');
         return $data;
       }
     }
