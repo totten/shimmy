@@ -112,8 +112,8 @@ return function ($mixInfo, $bootCache) {
     }
 
     $settingsDir = $mixInfo->getPath('settings');
-    if (!in_array($settingsDir, $e->metaDataFolders) && is_dir($settingsDir)) {
-      $e->metaDataFolders[] = $settingsDir;
+    if (!in_array($settingsDir, $e->settingsFolders) && is_dir($settingsDir)) {
+      $e->settingsFolders[] = $settingsDir;
     }
   });
 
