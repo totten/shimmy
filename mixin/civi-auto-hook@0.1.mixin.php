@@ -42,6 +42,7 @@ function findInterfaces(string $extDir, string $interface) {
   $srcDirs = ['CRM' => '_', 'Civi' => '\\'];
   foreach ($srcDirs as $srcDir => $classDelim) {
     $phpFiles = \CRM_Utils_File::findFiles($extDir . DIRECTORY_SEPARATOR . $srcDir, '*.php');
+    $phpFiles = preg_grep(';\.mgd\.php$;', $phpFiles, PREG_GREP_INVERT);
     foreach ($phpFiles as $phpFile) {
       $name = \CRM_Utils_File::relativize($phpFile, $extDir);
       $name = preg_replace(';\.php$;', '', $name);
