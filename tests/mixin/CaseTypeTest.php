@@ -12,12 +12,12 @@ namespace Civi\Shimmy\Mixins;
  */
 class CaseTypeTest extends \PHPUnit\Framework\Assert {
 
-  public function testPreConditions() {
+  public function testPreConditions($cv) {
     $this->assertFileExists(static::getPath('/xml/case/DuckDance.xml'), 'The shimmy extension must have a Case XML file.');
   }
 
-  public function testInstalled() {
-    $items = cv('api4 CaseType.get +w name=DuckDance');
+  public function testInstalled($cv) {
+    $items = $cv->api4('CaseType', 'get', ['where' => [['name', '=', 'DuckDance']]]);
     $this->assertEquals('The mysterious case of the dancing duck', $items[0]['description']);
     $this->assertEquals('DuckDance', $items[0]['name']);
     $this->assertEquals('Duck Dance Case', $items[0]['title']);
@@ -25,8 +25,8 @@ class CaseTypeTest extends \PHPUnit\Framework\Assert {
     $this->assertEquals(1, count($items));
   }
 
-  public function testDisabled() {
-    $items = cv('api4 CaseType.get +w name=DuckDance');
+  public function testDisabled($cv) {
+    $items = $cv->api4('CaseType', 'get', ['where' => [['name', '=', 'DuckDance']]]);
     $this->assertEquals('The mysterious case of the dancing duck', $items[0]['description']);
     $this->assertEquals('DuckDance', $items[0]['name']);
     $this->assertEquals('Duck Dance Case', $items[0]['title']);
@@ -34,9 +34,9 @@ class CaseTypeTest extends \PHPUnit\Framework\Assert {
     $this->assertEquals(1, count($items));
   }
 
-  public function testUninstalled() {
-    $items = cv('api4 CaseType.get +w name=DuckDance');
-    $this->assertEmpty($items);
+  public function testUninstalled($cv) {
+    $items = $cv->api4('CaseType', 'get', ['where' => [['name', '=', 'DuckDance']]]);
+    $this->assertEquals(0, count($items));
   }
 
   protected static function getPath($suffix = ''): string {

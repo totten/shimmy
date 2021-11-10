@@ -18,13 +18,13 @@ class MenuTest extends \PHPUnit\Framework\Assert {
    */
   protected $url;
 
-  public function testPreConditions() {
+  public function testPreConditions($cv) {
     $this->assertFileExists(static::getPath('/xml/Menu/shimmy.xml'), 'The shimmy extension must have a Menu XML file.');
   }
 
-  public function testInstalled() {
+  public function testInstalled($cv) {
     // The menu item is registered...
-    $items = cv('api4 Route.get +w path=civicrm/shimmy/foobar');
+    $items = $cv->api4('Route', 'get', ['where' => [['path', '=', 'civicrm/shimmy/foobar']]]);
     $this->assertEquals('CRM_Shimmy_Page_FooBar', $items[0]['page_callback']);
 
     // And the menu item works...
@@ -34,8 +34,8 @@ class MenuTest extends \PHPUnit\Framework\Assert {
     $this->assertRegExp(';hello world;', $response);
   }
 
-  public function testDisabled() {
-    $items = cv('api4 Route.get +w path=civicrm/shimmy/foobar');
+  public function testDisabled($cv) {
+    $items = $cv->api4('Route', 'get', ['where' => [['path', '=', 'civicrm/shimmy/foobar']]]);
     $this->assertEmpty($items);
 
     $this->assertNotEmpty($this->url);
@@ -44,9 +44,9 @@ class MenuTest extends \PHPUnit\Framework\Assert {
     $this->assertNotRegExp(';HTTP.*200.*;', $http_response_header[0]);
   }
 
-  public function testUninstalled() {
+  public function testUninstalled($cv) {
     // Same as disabled.
-    $this->testDisabled();
+    $this->testDisabled($cv);
   }
 
   protected static function getPath($suffix = ''): string {
