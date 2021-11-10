@@ -13,7 +13,7 @@ class E2E_Shimmy_LifecycleTest extends \PHPUnit\Framework\TestCase {
    */
   protected $mixinTests;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->mixinTests = [];
     $mixinTestFiles = (array) glob($this->getPath('/tests/mixin/*Test.php'));
@@ -30,15 +30,21 @@ class E2E_Shimmy_LifecycleTest extends \PHPUnit\Framework\TestCase {
   public function testLifecycle(): void {
     $this->assertNotEquals('UnitTests', getenv('CIVICRM_UF'), 'This is an end-to-end test involving CLI and HTTP. CIVICRM_UF should not be set to UnitTests.');
 
-    $this->runMethods('testFiles');
+    $this->runMethods('testPreConditions');
 
     // Clear out anything from previous runs.
     static::cv('api3 Extension.disable key=shimmy');
     static::cv('api3 Extension.uninstall key=shimmy');
 
+    // The main show.
     static::cv('api3 Extension.enable key=shimmy');
     $this->runMethods('testInstalled');
 
+    // This is a duplicate - make sure things still work after an extra run.
+    static::cv('api3 Extension.enable key=shimmy');
+    $this->runMethods('testInstalled');
+
+    // OK, how's the cleanup?
     static::cv('api3 Extension.disable key=shimmy');
     $this->runMethods('testDisabled');
 

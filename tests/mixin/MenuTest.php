@@ -18,7 +18,7 @@ class MenuTest extends \PHPUnit\Framework\Assert {
    */
   protected $url;
 
-  public function testFiles() {
+  public function testPreConditions() {
     $this->assertFileExists(static::getPath('/xml/Menu/shimmy.xml'), 'The shimmy extension must have a Menu XML file.');
   }
 

@@ -12,7 +12,7 @@ namespace Civi\Shimmy\Mixins;
  */
 class ManagedTest extends \PHPUnit\Framework\Assert {
 
-  public function testFiles() {
+  public function testPreConditions() {
     $this->assertFileExists(static::getPath('/CRM/ShimmyGroup.mgd.php'), 'The shimmy extension must have a Menu XML file.');
   }
 
