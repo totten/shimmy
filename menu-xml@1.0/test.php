@@ -1,7 +1,5 @@
 <?php
 
-namespace Civi\Shimmy\Mixins;
-
 /**
  * Assert that the `xml/Menu/*.xml` mixin is working properly.
  *
@@ -10,7 +8,7 @@ namespace Civi\Shimmy\Mixins;
  *
  * @see E2E_Shimmy_LifecycleTest
  */
-class MenuTest extends \PHPUnit\Framework\Assert {
+return new class extends \PHPUnit\Framework\Assert { 
 
   /**
    * The URL of hte example route, `civicrm/shimmy/foobar`.
@@ -53,4 +51,4 @@ class MenuTest extends \PHPUnit\Framework\Assert {
     return dirname(__DIR__, 2) . $suffix;
   }
 
-}
+};

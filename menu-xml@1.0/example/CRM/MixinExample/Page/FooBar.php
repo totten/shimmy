@@ -1,6 +1,4 @@
 <?php
-use CRM_Shimmy_ExtensionUtil as E;
-
 class CRM_Shimmy_Page_FooBar extends CRM_Core_Page {
 
   public function run() {
