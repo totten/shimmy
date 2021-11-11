@@ -3,7 +3,8 @@
 /**
  * Auto-register "xml/Menu/*.xml" files.
  *
- * @version 1.0.0
+ * @mixinName menu-xml
+ * @mixinVersion 1.0.0
  *
  * @param CRM_Extension_MixInfo $mixInfo
  *   On newer deployments, this will be an instance of MixInfo. On older deployments, Civix may polyfill with a work-a-like.
