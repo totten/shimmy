@@ -1,12 +1,40 @@
 #!/usr/bin/env php
 <?php
 
-function task_install_example(string $mixinName, string $civicrmRoot) {
-  exit("TODO install-example $mixinName $civicrmRoot\n");
+function task_create_example(string $mixinName, string $civicrmRoot) {
+  $mixinName = clean_mixin_name($mixinName);
+  assert_civicrm_dir($civicrmRoot);
+
+  $srcDirs = [
+    mixin_dir() . "/COMMON/example",
+    mixin_dir() . "/$mixinName/example",
+  ];
+  array_map('assert_dir', $srcDirs);
+
+  $targetDir = "$civicrmRoot/ext/example-mixer";
+  remove_dir($targetDir);
+  foreach ($srcDirs as $srcDir) {
+    deep_copy($srcDir, $targetDir);
+  }
+
+  mkdir("$targetDir/mixin");
+  copy(assert_file(mixin_dir() . "/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
+  rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
+
+  update_xml("$targetDir/info.xml", function (SimpleXMLElement $info) use ($mixinName) {
+    $mixins = $info->addChild('mixins');
+    $mixins->addChild('mixin', $mixinName);
+  });
+
+  return $targetDir;
 }
 
-function task_test(string $mixinName, tring $civicrmRoot) {
-  exit("TODO test $mixinName $civicrmRoot\n");
+function task_test_example(string $mixinName, string $civicrmRoot) {
+  $mixinName = clean_mixin_name($mixinName);
+  $targetDir = task_create_example($mixinName, $civicrmRoot);
+  with_dir($targetDir, function () {
+    phpunit('--group e2e');
+  });
 }
 
 function task_test_all(string $civicrmRoot) {
@@ -18,13 +46,94 @@ function task_help() {
   fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
   fprintf(STDERR, "\n");
   fprintf(STDERR, "Usage:\n");
-  fprintf(STDERR, "  %s install-example <mixin-name> <civicrm-root>\n", $cmd);
+  fprintf(STDERR, "  %s create-example <mixin-name> <civicrm-root>\n", $cmd);
   fprintf(STDERR, "  %s test <mixin-name> <civicrm-root>\n", $cmd);
   fprintf(STDERR, "  %s test-all <civicrm-root>\n", $cmd);
 }
 
+function mixin_dir(): string {
+  return dirname(__DIR__);
+}
+
+function assert_civicrm_dir(string $dir): string {
+  assert_dir($dir);
+  if (!file_exists("$dir/civicrm-version.php")) {
+    throw new \RuntimeException("CiviCRM source dir does not have CiviCRM source...");
+  }
+  return $dir;
+}
+
+function assert_dir(string $dir): string {
+  if (!file_exists($dir) || !is_dir($dir)) {
+    throw new \RuntimeException("Directory does not exist ($dir)");
+  }
+  return $dir;
+}
+
+function assert_file(string $file): string {
+  if (!file_exists($file)) {
+    throw new \RuntimeException("File does not exist ($file)");
+  }
+  return $file;
+}
+
+function remove_dir(string $dir): void {
+  if (file_exists($dir)) {
+    passthru_ok("rm -rf " . escapeshellarg($dir));
+  }
+}
+
+function deep_copy(string $srcDir, string $targetDir): void {
+  if (!file_exists($targetDir)) {
+    mkdir($targetDir);
+  }
+  passthru_ok(sprintf('rsync -a %s/./ %s/./', escapeshellarg($srcDir), escapeshellarg($targetDir)));
+}
+
+function phpunit(string $args = '') {
+  passthru_ok('phpunit8 ' . $args);
+}
+
+function passthru_ok($cmd) {
+  passthru($cmd, $return);
+  if ($return !== 0) {
+    throw new \RuntimeException("Command failed ($cmd)");
+  }
+}
+
+function clean_mixin_name(string $mixinName) {
+  return trim($mixinName, '/' . DIRECTORY_SEPARATOR);
+}
+
+function with_dir(string $dir, callable $callback) {
+  assert_dir($dir);
+  $orig = getcwd();
+  try {
+    chdir($dir);
+    $callback();
+  } finally {
+    chdir($orig);
+  }
+}
+
+function update_xml(string $file, callable $filter): void {
+  $dom = new DomDocument();
+  $dom->load($file);
+  $dom->xinclude();
+  $simpleXml = simplexml_import_dom($dom);
+  $filter($simpleXml);
+  // force pretty printing with encode/decode cycle
+  $outXML = $simpleXml->saveXML();
+  $xml = new DOMDocument();
+  $xml->encoding = 'iso-8859-1';
+  $xml->preserveWhiteSpace = FALSE;
+  $xml->formatOutput = TRUE;
+  $xml->loadXML($outXML);
+  file_put_contents($file, $xml->saveXML());
+}
+
 function main($args) {
-  $self = array_shift($args);
+  $cmd = array_shift($args);
   $taskName = array_shift($args);
   $task = 'task_' . preg_replace(';[^\w];', '_', $taskName);
   if (function_exists($task)) {
@@ -35,4 +144,5 @@ function main($args) {
     exit(1);
   }
 }
+
 main($argv);
