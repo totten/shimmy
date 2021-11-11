@@ -92,6 +92,17 @@ function task_test(array $options, string $targetDir, ...$mixinNames) {
   });
 }
 
+function task_list(array $options, ...$mixinNames) {
+  $mixinNames = resolve_mixin_names($mixinNames);
+  foreach ($mixinNames as $mixinName) {
+    $mixinBaseName = preg_replace(';@.*$;', '', $mixinName);
+    $mixinRelFile = "mixins/$mixinName/mixin.php";
+    $mixinFile = mixlib_dir() . '/' . $mixinRelFile;
+    $header = MixinHeader::parseFile(assert_file($mixinFile));
+    fprintf(STDOUT, "%-20s %-10s %s\n", $mixinBaseName, $header['version'] ?? '', $header['description'] ?? '');
+  }
+}
+
 function task_help(array $options) {
   $cmd = basename($GLOBALS['argv'][0]);
   fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
@@ -99,6 +110,7 @@ function task_help(array $options) {
   fprintf(STDERR, "Usage:\n");
   fprintf(STDERR, "  %s create [-f] <new-ext-path> [<mixin-name>...]\n", $cmd);
   fprintf(STDERR, "  %s test [-f] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s list [<mixin-name>...]\n", $cmd);
 }
 
 function mixlib_dir(): string {
