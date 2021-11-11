@@ -1,12 +1,14 @@
-# Mixins
+# Mixin Library (mixlib)
 
 This repository contains a set of *CiviCRM extension mixins*.  Mixins are small bits of glue-code that reduce common
 boilerplate.  To support early adopters, mixins may be bundled directly with an extension; additionally, to support
 long-term maintenance, mixins may be updated through `civicrm-core` (or other extensions).
 
+The "Mixin Library" supports development/distribution of mixins.  Install it if you wish to update common mixins.
+
 ## Usage
 
-To activate a mixin, an extension should list it in `info.xml`:
+To activate a mixin, an extension should add a declaration to `info.xml`:
 
 ```xml
 <extension key="...">
