@@ -1,6 +1,19 @@
 #!/usr/bin/env php
 <?php
 
+require_once dirname(__DIR__) . '/src/MixinHeader.php';
+
+/**
+ * Generate a test extension which uses the given mixins..
+ *
+ * @param array $options
+ *   Ex: ['force' => TRUE]
+ * @param string $targetDir
+ *   The output directory.
+ * @param mixed ...$mixinNames
+ *   List of mixins to include in the generated extension.
+ * @return string
+ */
 function task_create(array $options, string $targetDir, ...$mixinNames) {
   if (file_exists($targetDir)) {
     if (!empty($options['force'])) {
@@ -16,15 +29,23 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   fprintf(STDOUT, "Create %s for %s\n", $targetDir, implode(',', $mixinNames));
 
   $srcDirs = [];
-  $srcDirs[] = mixin_dev_dir() . "/shimmy";
+  $srcDirs[] = mixlib_dir() . "/shimmy";
   foreach ($mixinNames as $mixinName) {
-    $srcDirs[] = mixin_dev_dir() . "/mixins/$mixinName/example";
+    if (is_dir(mixlib_dir() . "/mixins/$mixinName/example")) {
+      $srcDirs[] = mixlib_dir() . "/mixins/$mixinName/example";
+    }
   }
   deep_copy($srcDirs, $targetDir);
 
   mkdir("$targetDir/mixin");
   foreach ($mixinNames as $mixinName) {
-    copy(assert_file(mixin_dev_dir() . "/mixins/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
+    $mixinFile = mixlib_dir() . "/mixins/$mixinName/mixin.php";
+    $header = MixinHeader::parseFile(assert_file($mixinFile));
+    if (empty($header['version'])) {
+      throw new \RuntimeException("Cannot build $mixinName. There is no @version annotation.");
+    }
+    $mixinBaseName = preg_replace(';@.*$;', '', $mixinName);
+    copy(assert_file($mixinFile), "$targetDir/mixin/{$mixinBaseName}@{$header['version']}.mixin.php");
   }
 
   rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
@@ -38,6 +59,17 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   return $targetDir;
 }
 
+/**
+ * Generate and test an extension that uses the given mixins..
+ *
+ * @param array $options
+ *   Ex: ['force' => TRUE]
+ *   Ex: ['isolate' => TRUE]
+ * @param string $targetDir
+ *   The output directory.
+ * @param mixed ...$mixinNames
+ *   List of mixins to include in the generated extension.
+ */
 function task_test(array $options, string $targetDir, ...$mixinNames) {
   $mixinNames = resolve_mixin_names($mixinNames);
   if (!empty($options['isolate']) && count($mixinNames) > 1) {
@@ -69,7 +101,7 @@ function task_help(array $options) {
   fprintf(STDERR, "  %s test [-f] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
 }
 
-function mixin_dev_dir(): string {
+function mixlib_dir(): string {
   return dirname(__DIR__);
 }
 
@@ -121,7 +153,7 @@ function passthru_ok($cmd) {
 
 function resolve_mixin_names(array $mixinNames): array {
   if (empty($mixinNames)) {
-    $dirs = (array) glob(mixin_dev_dir() . '/mixins/*@*');
+    $dirs = (array) glob(mixlib_dir() . '/mixins/*@*');
     foreach ($dirs as $dir) {
       if (is_dir($dir)) {
         $mixinNames[] = basename($dir);
