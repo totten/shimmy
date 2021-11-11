@@ -1,0 +1,38 @@
+#!/usr/bin/env php
+<?php
+
+function task_install_example(string $mixinName, string $civicrmRoot) {
+  exit("TODO install-example $mixinName $civicrmRoot\n");
+}
+
+function task_test(string $mixinName, tring $civicrmRoot) {
+  exit("TODO test $mixinName $civicrmRoot\n");
+}
+
+function task_test_all(string $civicrmRoot) {
+  exit("TODO test-all $civicrmRoot\n");
+}
+
+function task_help() {
+  $cmd = basename($GLOBALS['argv'][0]);
+  fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
+  fprintf(STDERR, "\n");
+  fprintf(STDERR, "Usage:\n");
+  fprintf(STDERR, "  %s install-example <mixin-name> <civicrm-root>\n", $cmd);
+  fprintf(STDERR, "  %s test <mixin-name> <civicrm-root>\n", $cmd);
+  fprintf(STDERR, "  %s test-all <civicrm-root>\n", $cmd);
+}
+
+function main($args) {
+  $self = array_shift($args);
+  $taskName = array_shift($args);
+  $task = 'task_' . preg_replace(';[^\w];', '_', $taskName);
+  if (function_exists($task)) {
+    call_user_func_array($task, $args);
+  }
+  else {
+    task_help();
+    exit(1);
+  }
+}
+main($argv);
