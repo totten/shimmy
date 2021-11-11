@@ -31,15 +31,15 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   $srcDirs = [];
   $srcDirs[] = mixlib_dir() . "/shimmy";
   foreach ($mixinNames as $mixinName) {
-    if (is_dir(mixlib_dir() . "/mixins/$mixinName/example")) {
-      $srcDirs[] = mixlib_dir() . "/mixins/$mixinName/example";
+    if (is_dir(mixlib_dir() . "/mixin/$mixinName/example")) {
+      $srcDirs[] = mixlib_dir() . "/mixin/$mixinName/example";
     }
   }
   deep_copy($srcDirs, $targetDir);
 
   $mixins = [];
   foreach ($mixinNames as $mixinName) {
-    $mixinFile = mixlib_dir() . "/mixins/$mixinName/mixin.php";
+    $mixinFile = mixlib_dir() . "/mixin/$mixinName/mixin.php";
     $mixins[$mixinName] = MixinHeader::assertValid(MixinHeader::parseFile(assert_file($mixinFile)));
   }
 
@@ -98,7 +98,7 @@ function task_list(array $options, ...$mixinNames) {
   $mixinNames = resolve_mixin_names($mixinNames);
   foreach ($mixinNames as $mixinName) {
     $mixinBaseName = preg_replace(';@.*$;', '', $mixinName);
-    $mixinRelFile = "mixins/$mixinName/mixin.php";
+    $mixinRelFile = "mixin/$mixinName/mixin.php";
     $mixinFile = mixlib_dir() . '/' . $mixinRelFile;
     $header = MixinHeader::parseFile(assert_file($mixinFile));
     fprintf(STDOUT, "%-20s %-10s %s\n", $mixinBaseName, $header['version'] ?? '', $header['description'] ?? '');
@@ -167,7 +167,7 @@ function passthru_ok($cmd) {
 
 function resolve_mixin_names(array $mixinNames): array {
   if (empty($mixinNames)) {
-    $dirs = (array) glob(mixlib_dir() . '/mixins/*@*');
+    $dirs = (array) glob(mixlib_dir() . '/mixin/*@*');
     foreach ($dirs as $dir) {
       if (is_dir($dir)) {
         $mixinNames[] = basename($dir);
