@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+###############################################################################
+## Bootstrap
+
+## Determine the absolute path of the directory with the file
+## usage: absdirname <file-path>
+function absdirname() {
+  pushd $(dirname $0) >> /dev/null
+    pwd
+  popd >> /dev/null
+}
+
+SCRIPT_DIR=$(absdirname "$0")
+EXT_DIR=$(cv path -c extensionsDir)
+
+###############################################################################
+
+if [ -z "$EXT_DIR" -o ! -e "$EXT_DIR" ]; then
+  echo "Invalid extension dir: $EXT_DIR"
+  exit 1
+fi
+
+## For the moment, we make an extension with all mixins and test it.
+## In the future, when there are mutually exclusive mixins/versions, we may need to split this
+## out into multiple rules.
+"$SCRIPT_DIR/mixer" test -f "$EXT_DIR/example-mixin"

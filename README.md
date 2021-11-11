@@ -18,12 +18,11 @@ To activate a mixin, an extension should add a declaration to `info.xml`:
 </extension>
 ```
 
-If the mixin is widely used (eg bundled with `civicrm-core`), then no extra effort is required.
-However, if the mixin is new or bespoke, then you should copy it into the extension, eg
+If the mixin is distributed with core, then no extra effort is required.  However, if the mixin is new or bespoke, then
+you should copy it from mixlib (`$MIXLIB`) to the extension (`$MY_EXT`), eg
 
 ```
-mixins/
-  my-stuff@1.0.0.mixin.php
+cp $MIXLIB/mixins/my-stuff@1.0/mixin.php $MY_EXT/mixins/my-stuff@1.0.0.mixin.php
 ```
 
 ## Versioning
@@ -56,15 +55,23 @@ COMMON/
 ## Development
 
 ```bash
+## Run all test processes
+./scripts/test-all
+
 ## Deploy an example extension (all known mixins)
-./bin/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrm/ext/myexample
+./scripts/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrm/ext/myexample
 
 ## Deploy an example extension (specific mixins)
-./bin/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrmext/myexample setting-php@1.0
+./scripts/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrmext/myexample setting-php@1.0
 
 ## Deploy an example extension and run the corresponding tests (all known mixins)
-./bin/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
+./scripts/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
 
 ## Deploy an example extension and run the corresponding tests (specific mixins)
-./bin/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm setting-php@1.0
+./scripts/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm setting-php@1.0
 ```
+
+## Wishlist
+
+`mixer create` currently copies files to make the example extension.  It should use symlinks to make it easier to
+test/iterate.
