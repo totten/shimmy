@@ -20,9 +20,6 @@
   <compatibility>
     <ver>5.0</ver>
   </compatibility>
-  <mixins>
-    <mixin>case-xml@1.0</mixin>
-  </mixins>
   <comments>This is a new, undeveloped module</comments>
   <classloader>
     <psr0 prefix="CRM_" path="."/>
