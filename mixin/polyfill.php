@@ -7,37 +7,27 @@
 // But you can't completely remove the boilerplate without a compatibility-break.
 // This file should become runtime-irrelevant as sites upgrade.
 
-use CRM_Shimmy_ExtensionUtil as E;
-
-/**
- * Get a list of mixins to enable by defult
- * @return string[]
- */
-function _shimmy_civix_mixin_defaults() {
-  static $list;
-  if ($list === NULL) {
-    $list = array_map(
-      function($f) {
-        return str_replace('.mixin.php', '', basename($f));
-      },
-      (array) glob(__DIR__ . '/mixin/*.mixin.php')
-    );
-  }
-  return $list;
-}
-
 /**
  * When deploying on systems that lack mixin support, fake it.
  *
  * This polyfill does some (persnickity) deduplication, but it doesn't allow upgrades or shipping replacements in core.
  *
- * @param string[] $mixins
- *   Symbolic names. Only use mixins that are shipped with this extension.
+ * @param string $longName
+ * @param string $shortName
+ * @param string $basePath
  */
-function _shimmy_civix_mixin($mixins) {
+return function ($longName, $shortName, $basePath) {
   // Construct imitations of the mixin services. These cannot work as well (e.g. with respect to
   // number of file-reads, deduping, upgrading)... but they should be OK for a few months while
   // the mixin services become available.
+
+  // List of active mixins and their locations.
+  $mixins = array_map(
+    function($f) {
+      return str_replace('.mixin.php', '', basename($f));
+    },
+    (array) glob($basePath . '/mixin/*.mixin.php')
+  );
 
   // Imitate CRM_Extension_MixInfo.
   $mixInfo = new class() {
@@ -52,17 +42,20 @@ function _shimmy_civix_mixin($mixins) {
      */
     public $shortName;
 
-    public function getPath($relPath = NULL) {
-      return E::path($relPath);
+    public $_basePath;
+
+    public function getPath($file = NULL) {
+      return $this->_basePath . ($file === NULL ? '' : (DIRECTORY_SEPARATOR . $file));
     }
 
     public function isActive() {
-      return \CRM_Extension_System::singleton()->getMapper()->isActiveModule(E::SHORT_NAME);
+      return \CRM_Extension_System::singleton()->getMapper()->isActiveModule($this->shortName);
     }
 
   };
-  $mixInfo->longName = E::LONG_NAME;
-  $mixInfo->shortName = E::SHORT_NAME;
+  $mixInfo->longName = $longName;
+  $mixInfo->shortName = $shortName;
+  $mixInfo->_basePath = $basePath;
 
   // Imitate CRM_Extension_BootCache.
   $bootCache = new class() {
@@ -90,7 +83,7 @@ function _shimmy_civix_mixin($mixins) {
   foreach ($mixins as $mixin) {
     // If the exact same mixin is defined by multiple exts, just use the first one.
     if (!isset($_CIVIX_MIXIN_POLYFILL[$mixin])) {
-      $_CIVIX_MIXIN_POLYFILL[$mixin] = include_once __DIR__ . '/mixin/' . $mixin . '.mixin.php';
+      $_CIVIX_MIXIN_POLYFILL[$mixin] = include_once $basePath . '/mixin/' . $mixin . '.mixin.php';
     }
   }
   foreach ($mixins as $mixin) {
@@ -101,4 +94,4 @@ function _shimmy_civix_mixin($mixins) {
       $func($mixInfo, $bootCache);
     }
   }
-}
+};

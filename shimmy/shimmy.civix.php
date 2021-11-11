@@ -2,10 +2,6 @@
 
 // AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file
 
-if (!class_exists('CRM_Extension_MixInfo')) {
-  require_once 'shimmy.mixin.php';
-}
-
 /**
  * The ExtensionUtil class provides small stubs for accessing resources of this
  * extension.
@@ -83,6 +79,13 @@ class CRM_Shimmy_ExtensionUtil {
 
 use CRM_Shimmy_ExtensionUtil as E;
 
+function _shimmy_civix_mixin() {
+  if (!class_exists('CRM_Extension_MixInfo')) {
+    $polyfill = __DIR__ . '/mixin/polyfill.php';
+    (require $polyfill)(E::LONG_NAME, E::SHORT_NAME, E::path());
+  }
+}
+
 /**
  * (Delegated) Implements hook_civicrm_config().
  *
@@ -110,9 +113,7 @@ function _shimmy_civix_civicrm_config(&$config = NULL) {
   $include_path = $extRoot . PATH_SEPARATOR . get_include_path();
   set_include_path($include_path);
 
-  if (!class_exists('CRM_Extension_MixInfo')) {
-    _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
-  }
+  _shimmy_civix_mixin();
 }
 
 /**
@@ -125,9 +126,7 @@ function _shimmy_civix_civicrm_install() {
   if ($upgrader = _shimmy_civix_upgrader()) {
     $upgrader->onInstall();
   }
-  if (!class_exists('CRM_Extension_MixInfo')) {
-    _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
-  }
+  _shimmy_civix_mixin();
 }
 
 /**
@@ -167,9 +166,7 @@ function _shimmy_civix_civicrm_enable() {
     if (is_callable([$upgrader, 'onEnable'])) {
       $upgrader->onEnable();
     }
-    if (!class_exists('CRM_Extension_MixInfo')) {
-      _shimmy_civix_mixin(_shimmy_civix_mixin_defaults());
-    }
+    _shimmy_civix_mixin();
   }
 }
 

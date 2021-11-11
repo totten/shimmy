@@ -45,6 +45,7 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
 
   if (empty($options['bare'])) {
     mkdir("$targetDir/mixin");
+    copy(assert_file(mixlib_dir() . '/mixin/polyfill.php'), "$targetDir/mixin/polyfill.php");
     foreach ($mixins as $mixin) {
       copy(assert_file($mixin['file']), "$targetDir/mixin/{$mixin['mixinName']}@{$mixin['mixinVersion']}.mixin.php");
     }
