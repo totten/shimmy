@@ -1,44 +1,48 @@
 #!/usr/bin/env php
 <?php
 
-function task_create_example(string $mixinName, string $civicrmRoot) {
-  $mixinName = clean_mixin_name($mixinName);
-  assert_civicrm_dir($civicrmRoot);
-
-  $srcDirs = [
-    mixin_dir() . "/COMMON/example",
-    mixin_dir() . "/$mixinName/example",
-  ];
-  array_map('assert_dir', $srcDirs);
-
-  $targetDir = "$civicrmRoot/ext/example-mixer";
-  remove_dir($targetDir);
-  foreach ($srcDirs as $srcDir) {
-    deep_copy($srcDir, $targetDir);
+function task_create(array $options, string $targetDir, ...$mixinNames) {
+  if (file_exists($targetDir)) {
+    if (!empty($options['force'])) {
+      remove_dir($targetDir);
+    }
+    else {
+      throw new \RuntimeException("Cannot overwrite $targetDir");
+    }
   }
 
-  mkdir("$targetDir/mixin");
-  copy(assert_file(mixin_dir() . "/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
-  rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
+  $mixinNames = resolve_mixin_names($mixinNames);
 
-  update_xml("$targetDir/info.xml", function (SimpleXMLElement $info) use ($mixinName) {
+  $srcDirs = [];
+  $srcDirs[] = mixin_dir() . "/COMMON/example";
+  foreach ($mixinNames as $mixinName) {
+    $srcDirs[] = mixin_dir() . "/$mixinName/example";
+  }
+  deep_copy($srcDirs, $targetDir);
+
+  mkdir("$targetDir/mixin");
+  foreach ($mixinNames as $mixinName) {
+    copy(assert_file(mixin_dir() . "/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
+  }
+
+  rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
+  update_xml("$targetDir/info.xml", function (SimpleXMLElement $info) use ($mixinNames) {
     $mixins = $info->addChild('mixins');
-    $mixins->addChild('mixin', $mixinName);
+    foreach ($mixinNames as $mixinName) {
+      $mixins->addChild('mixin', $mixinName);
+    }
   });
 
   return $targetDir;
 }
 
-function task_test_example(string $mixinName, string $civicrmRoot) {
-  $mixinName = clean_mixin_name($mixinName);
-  $targetDir = task_create_example($mixinName, $civicrmRoot);
+function task_test(array $options, string $targetDir, ...$mixinNames) {
+  if (is_dir($targetDir) || !empty($options['force'])) {
+    $targetDir = task_create($options, $targetDir, ...$mixinNames);
+  }
   with_dir($targetDir, function () {
-    phpunit('--group e2e');
+    phpunit('--group e2e --debug --stop-on-failure');
   });
-}
-
-function task_test_all(string $civicrmRoot) {
-  exit("TODO test-all $civicrmRoot\n");
 }
 
 function task_help() {
@@ -46,21 +50,12 @@ function task_help() {
   fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
   fprintf(STDERR, "\n");
   fprintf(STDERR, "Usage:\n");
-  fprintf(STDERR, "  %s create-example <mixin-name> <civicrm-root>\n", $cmd);
-  fprintf(STDERR, "  %s test <mixin-name> <civicrm-root>\n", $cmd);
-  fprintf(STDERR, "  %s test-all <civicrm-root>\n", $cmd);
+  fprintf(STDERR, "  %s create <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s test <new-ext-path> [<mixin-name>...]\n", $cmd);
 }
 
 function mixin_dir(): string {
   return dirname(__DIR__);
-}
-
-function assert_civicrm_dir(string $dir): string {
-  assert_dir($dir);
-  if (!file_exists("$dir/civicrm-version.php")) {
-    throw new \RuntimeException("CiviCRM source dir does not have CiviCRM source...");
-  }
-  return $dir;
 }
 
 function assert_dir(string $dir): string {
@@ -83,11 +78,19 @@ function remove_dir(string $dir): void {
   }
 }
 
-function deep_copy(string $srcDir, string $targetDir): void {
+function deep_copy(array $srcDirs, string $targetDir): void {
+  $srcDirs = (array) $srcDirs;
+  foreach ($srcDirs as $srcDir) {
+    assert_dir($srcDir);
+  }
+
   if (!file_exists($targetDir)) {
     mkdir($targetDir);
   }
-  passthru_ok(sprintf('rsync -a %s/./ %s/./', escapeshellarg($srcDir), escapeshellarg($targetDir)));
+
+  foreach ($srcDirs as $srcDir) {
+    passthru_ok(sprintf('rsync -a %s/./ %s/./', escapeshellarg($srcDir), escapeshellarg($targetDir)));
+  }
 }
 
 function phpunit(string $args = '') {
@@ -101,8 +104,23 @@ function passthru_ok($cmd) {
   }
 }
 
-function clean_mixin_name(string $mixinName) {
-  return trim($mixinName, '/' . DIRECTORY_SEPARATOR);
+function resolve_mixin_names(array $mixinNames): array {
+  if (empty($mixinNames)) {
+    $dirs = (array) glob(mixin_dir() . '/*@*');
+    foreach ($dirs as $dir) {
+      if (is_dir($dir)) {
+        $mixinNames[] = basename($dir);
+      }
+    }
+    sort($mixinNames);
+    return $mixinNames;
+  }
+  else {
+    return array_map(
+      function (string $mixinName) {
+        return trim($mixinName, '/' . DIRECTORY_SEPARATOR);
+      }, $mixinNames);
+  }
 }
 
 function with_dir(string $dir, callable $callback) {
@@ -136,8 +154,19 @@ function main($args) {
   $cmd = array_shift($args);
   $taskName = array_shift($args);
   $task = 'task_' . preg_replace(';[^\w];', '_', $taskName);
+
+  $newOptions = $newArgs = [];
+  foreach ($args as $arg) {
+    if ($arg === '-f') {
+      $newOptions['force'] = TRUE;
+    }
+    else {
+      $newArgs[] = $arg;
+    }
+  }
+
   if (function_exists($task)) {
-    call_user_func_array($task, $args);
+    call_user_func($task, $newOptions, ...$newArgs);
   }
   else {
     task_help();

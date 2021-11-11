@@ -5,12 +5,15 @@ This repository contains a set of *extension mixins*.
 ## Development
 
 ```bash
-## Deploy an example extension
-./bin/mixer create-example setting-php@1.0 ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
+## Deploy an example extension (all known mixins)
+./bin/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrm/ext/myexample
 
-## Deploy an example extension and run the corresponding tests
-./bin/mixer test-example setting-php@1.0 ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
+## Deploy an example extension (specific mixins)
+./bin/mixer create ~/buildkit/build/dmaster/web/sites/all/modules/civicrmext/myexample setting-php@1.0
 
-## Iteratively deploy and test each example
-./bin/mixer test-all ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
+## Deploy an example extension and run the corresponding tests (all known mixins)
+./bin/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm
+
+## Deploy an example extension and run the corresponding tests (specific mixins)
+./bin/mixer test ~/buildkit/build/dmaster/web/sites/all/modules/civicrm setting-php@1.0
 ```
