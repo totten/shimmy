@@ -4,6 +4,7 @@
 function task_create(array $options, string $targetDir, ...$mixinNames) {
   if (file_exists($targetDir)) {
     if (!empty($options['force'])) {
+      fprintf(STDOUT, "Remove %s\n", $targetDir);
       remove_dir($targetDir);
     }
     else {
@@ -12,6 +13,7 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   }
 
   $mixinNames = resolve_mixin_names($mixinNames);
+  fprintf(STDOUT, "Create %s for %s\n", $targetDir, implode(',', $mixinNames));
 
   $srcDirs = [];
   $srcDirs[] = mixin_dir() . "/COMMON/example";
@@ -37,21 +39,34 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
 }
 
 function task_test(array $options, string $targetDir, ...$mixinNames) {
+  $mixinNames = resolve_mixin_names($mixinNames);
+  if (!empty($options['isolate']) && count($mixinNames) > 1) {
+    foreach ($mixinNames as $mixinName) {
+      task_test($options + ['force' => TRUE], $targetDir, $mixinName);
+    }
+    return;
+  }
+
   if (is_dir($targetDir) || !empty($options['force'])) {
     $targetDir = task_create($options, $targetDir, ...$mixinNames);
   }
+  if (empty(glob("$targetDir/tests/mixin/*.php"))) {
+    fprintf(STDERR, "Skip. No tests found for %s\n", implode(',', $mixinNames));
+    return;
+  }
+  fprintf(STDOUT, "Test %s\n", implode(',', $mixinNames));
   with_dir($targetDir, function () {
     phpunit('--group e2e --debug --stop-on-failure');
   });
 }
 
-function task_help() {
+function task_help(array $options) {
   $cmd = basename($GLOBALS['argv'][0]);
   fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
   fprintf(STDERR, "\n");
   fprintf(STDERR, "Usage:\n");
-  fprintf(STDERR, "  %s create <new-ext-path> [<mixin-name>...]\n", $cmd);
-  fprintf(STDERR, "  %s test <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s create [-f] <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s test [-f] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
 }
 
 function mixin_dir(): string {
@@ -160,6 +175,9 @@ function main($args) {
     if ($arg === '-f') {
       $newOptions['force'] = TRUE;
     }
+    elseif (preg_match(';^--(isolate|force)$;', $arg, $m)) {
+      $newOptions[$m[1]] = TRUE;
+    }
     else {
       $newArgs[] = $arg;
     }
@@ -169,7 +187,7 @@ function main($args) {
     call_user_func($task, $newOptions, ...$newArgs);
   }
   else {
-    task_help();
+    task_help([]);
     exit(1);
   }
 }
