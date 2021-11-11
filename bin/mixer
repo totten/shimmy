@@ -16,15 +16,15 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   fprintf(STDOUT, "Create %s for %s\n", $targetDir, implode(',', $mixinNames));
 
   $srcDirs = [];
-  $srcDirs[] = mixin_dir() . "/COMMON/example";
+  $srcDirs[] = mixin_dev_dir() . "/shimmy";
   foreach ($mixinNames as $mixinName) {
-    $srcDirs[] = mixin_dir() . "/$mixinName/example";
+    $srcDirs[] = mixin_dev_dir() . "/mixins/$mixinName/example";
   }
   deep_copy($srcDirs, $targetDir);
 
   mkdir("$targetDir/mixin");
   foreach ($mixinNames as $mixinName) {
-    copy(assert_file(mixin_dir() . "/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
+    copy(assert_file(mixin_dev_dir() . "/mixins/$mixinName/mixin.php"), "$targetDir/mixin/$mixinName.mixin.php");
   }
 
   rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
@@ -69,7 +69,7 @@ function task_help(array $options) {
   fprintf(STDERR, "  %s test [-f] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
 }
 
-function mixin_dir(): string {
+function mixin_dev_dir(): string {
   return dirname(__DIR__);
 }
 
@@ -121,7 +121,7 @@ function passthru_ok($cmd) {
 
 function resolve_mixin_names(array $mixinNames): array {
   if (empty($mixinNames)) {
-    $dirs = (array) glob(mixin_dir() . '/*@*');
+    $dirs = (array) glob(mixin_dev_dir() . '/mixins/*@*');
     foreach ($dirs as $dir) {
       if (is_dir($dir)) {
         $mixinNames[] = basename($dir);
@@ -167,16 +167,18 @@ function update_xml(string $file, callable $filter): void {
 
 function main($args) {
   $cmd = array_shift($args);
-  $taskName = array_shift($args);
-  $task = 'task_' . preg_replace(';[^\w];', '_', $taskName);
 
   $newOptions = $newArgs = [];
+  $task = NULL;
   foreach ($args as $arg) {
     if ($arg === '-f') {
       $newOptions['force'] = TRUE;
     }
     elseif (preg_match(';^--(isolate|force)$;', $arg, $m)) {
       $newOptions[$m[1]] = TRUE;
+    }
+    elseif ($task === NULL) {
+      $task = 'task_' . preg_replace(';[^\w];', '_', $arg);
     }
     else {
       $newArgs[] = $arg;
