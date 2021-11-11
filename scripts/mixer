@@ -37,22 +37,24 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
   }
   deep_copy($srcDirs, $targetDir);
 
-  mkdir("$targetDir/mixin");
+  $mixins = [];
   foreach ($mixinNames as $mixinName) {
     $mixinFile = mixlib_dir() . "/mixins/$mixinName/mixin.php";
-    $header = MixinHeader::parseFile(assert_file($mixinFile));
-    if (empty($header['version'])) {
-      throw new \RuntimeException("Cannot build $mixinName. There is no @version annotation.");
+    $mixins[$mixinName] = MixinHeader::assertValid(MixinHeader::parseFile(assert_file($mixinFile)));
+  }
+
+  if (empty($options['bare'])) {
+    mkdir("$targetDir/mixin");
+    foreach ($mixins as $mixin) {
+      copy(assert_file($mixin['file']), "$targetDir/mixin/{$mixin['mixinName']}@{$mixin['mixinVersion']}.mixin.php");
     }
-    $mixinBaseName = preg_replace(';@.*$;', '', $mixinName);
-    copy(assert_file($mixinFile), "$targetDir/mixin/{$mixinBaseName}@{$header['version']}.mixin.php");
   }
 
   rename(assert_file("$targetDir/info.xml.template"), "$targetDir/info.xml");
-  update_xml("$targetDir/info.xml", function (SimpleXMLElement $info) use ($mixinNames) {
-    $mixins = $info->addChild('mixins');
-    foreach ($mixinNames as $mixinName) {
-      $mixins->addChild('mixin', $mixinName);
+  update_xml("$targetDir/info.xml", function (SimpleXMLElement $info) use ($mixins) {
+    $mixinsXml = $info->addChild('mixins');
+    foreach ($mixins as $mixinName => $mixin) {
+      $mixinsXml->addChild('mixin', $mixin['mixinName'] . '@' . $mixin['mixinVersion']);
     }
   });
 
@@ -108,8 +110,8 @@ function task_help(array $options) {
   fprintf(STDERR, "%s - Test utility for extension mixins\n", $cmd);
   fprintf(STDERR, "\n");
   fprintf(STDERR, "Usage:\n");
-  fprintf(STDERR, "  %s create [-f] <new-ext-path> [<mixin-name>...]\n", $cmd);
-  fprintf(STDERR, "  %s test [-f] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s create [-f] [--bare] <new-ext-path> [<mixin-name>...]\n", $cmd);
+  fprintf(STDERR, "  %s test [-f] [--bare] [--isolate] <new-ext-path> [<mixin-name>...]\n", $cmd);
   fprintf(STDERR, "  %s list [<mixin-name>...]\n", $cmd);
 }
 
@@ -218,7 +220,7 @@ function main($args) {
     if ($arg === '-f') {
       $newOptions['force'] = TRUE;
     }
-    elseif (preg_match(';^--(isolate|force)$;', $arg, $m)) {
+    elseif (preg_match(';^--(bare|isolate|force)$;', $arg, $m)) {
       $newOptions[$m[1]] = TRUE;
     }
     elseif ($task === NULL) {

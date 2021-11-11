@@ -2,14 +2,27 @@
 
 class MixinHeader {
 
+  public static function assertValid(array $mixin): array {
+    if (empty($mixin['mixinVersion'])) {
+      throw new \RuntimeException("Invalid {$mixin["file"]}. There is no @mixinVersion annotation.");
+    }
+    if (empty($mixin['mixinVersion'])) {
+      throw new \RuntimeException("Invalid {$mixin["file"]}. There is no @mixinName annotation.");
+    }
+    return $mixin;
+  }
+
   public static function parseFile(string $file): array {
+    $mixinSpec = [];
     $php = file_get_contents($file);
     foreach (token_get_all($php) as $token) {
       if (is_array($token) && in_array($token[0], [T_DOC_COMMENT, T_COMMENT, T_FUNC_C, T_METHOD_C, T_TRAIT_C, T_CLASS_C])) {
-        return static::parseComment($token[1]);
+        $mixinSpec = static::parseComment($token[1]);
+        break;
       }
     }
-    return [];
+    $mixinSpec['file'] = $file;
+    return $mixinSpec;
   }
 
   protected static function parseComment(string $comment): array {
