@@ -56,6 +56,11 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
     foreach ($mixins as $mixinName => $mixin) {
       $mixinsXml->addChild('mixin', $mixin['mixinName'] . '@' . $mixin['mixinVersion']);
     }
+    if (!empty($options['bare'])) {
+      // If the example doesn't include mixins, then we must get them from elsewhere.
+      $requiresXml = $info->addChild('requires');
+      $requiresXml->addChild('ext', 'mixinlib');
+    }
   });
 
   return $targetDir;

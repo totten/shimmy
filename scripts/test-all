@@ -25,4 +25,10 @@ fi
 ## For the moment, we make an extension with all mixins and test it.
 ## In the future, when there are mutually exclusive mixins/versions, we may need to split this
 ## out into multiple rules.
+
+#"$SCRIPT_DIR/mixer" create -f "$EXT_DIR/example-mixin"
+
 "$SCRIPT_DIR/mixer" test -f "$EXT_DIR/example-mixin"
+if cv ev 'exit(class_exists("CRM_Extension_MixinLoader")?0:1);' ; then
+  "$SCRIPT_DIR/mixer" test --bare -f "$EXT_DIR/example-mixin"
+fi
