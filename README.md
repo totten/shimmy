@@ -1,29 +1,47 @@
 # Mixin Library (mixlib)
 
-This repository contains a set of *CiviCRM extension mixins*.  Mixins are small bits of glue-code that reduce common
-boilerplate.  To support early adopters, mixins may be bundled directly with an extension; additionally, to support
-long-term maintenance, mixins may be updated through `civicrm-core` (or other extensions).
+This repository contains a set of *CiviCRM mixins*.  Mixins are small bits of glue-code that you may add to an extension.
+For example, a typical mixin might [implement a hook and scan for related files](mixin/setting-php@1/mixin.php).
 
-The "Mixin Library" supports development/distribution of mixins.  Install it if you wish to update common mixins.
+The "Mixin Library" supports development/distribution of mixins -- providing the canonical home and test harness for various
+mixins. Install it if you wish to update or develope common mixins.
 
 ## Usage
 
-To activate a mixin, an extension should add a declaration to `info.xml`:
+Copy the mixin from mixlib (`$MIXLIB`) to your extension (`$MY_EXT`):
+
+```sh
+# Formula
+cp "MIXLIB/mixins/MY-MIXIN@VERSION/mixin.php" "MY_EXTENSION/mixins/MY-MIXIN@VERSION.mixin.php"
+
+# Example
+cp "/path/to/mixlib/mixins/my-stuff@1/mixin.php" "/path/to/myext/mixins/my-stuff@1.0.0.mixin.php"
+
+# Note that `myext/mixins/` contains a series of `*.mixin.php` files.
+# The filename reveals the full version (eg `1.0.0`).
+```
+
+Activate the mixin via `info.xml`:
 
 ```xml
 <extension key="...">
   <mixins>
-    <mixin>my-stuff@1.0</mixin>
+    <mixin>my-stuff@1.0.0</mixin>
   </mixins>
 </extension>
 ```
 
-If the mixin is distributed with core, then no extra effort is required.  However, if the mixin is new or bespoke, then
-you should copy it from mixlib (`$MIXLIB`) to the extension (`$MY_EXT`), eg
+For compatibility with pre-existing versions of CiviCRM, you may add the [mixin polyfill](doc/polyfill.md).
 
-```
-cp $MIXLIB/mixins/my-stuff@1.0/mixin.php $MY_EXT/mixins/my-stuff@1.0.0.mixin.php
-```
+## Evaluation
+
+Mixins can replace much of the boilerplate traditionally seen in `*.civix.php` file. Like `*.civix.php`, mixins can be updated and
+deployed without requiring a `civicrm-core` update. However, they has several comparative advantages:
+
+* Mixins are simple PHP files. The files can be copied without editing. There is no need for re-editing PHP files or using meta-PHP templates.
+* Mixins are incremental. You may use one service (eg `*.setting.php` scanning) without another service (eg `*.mgd.php` scanning).
+* Mixins are deduplicated. If 3 extensions use the same mixin, then only one copy is loaded. (*Requires core support*)
+* Mixins are versioned and updateable. If 3 extensions use the same mixin, then the newest version will be loaded. (*Requires core support*)
 
 ## Versioning
 
@@ -33,7 +51,7 @@ Every mixin has an associated version similar to _SemVer_ (`MAJOR`.`MINOR`.`PATC
 * `MINOR` versions add functionality. Minor versions have presumed forward-compatibility. (New minors supercede old minors.)
 * `PATCH` versions fix bugs. Patch versions have presumed forward-compatibility. (New patches supercide old patches.)
 
-## File layout
+## File layout (mixlib)
 
 ```
 bin/
