@@ -1,12 +1,5 @@
 <?php
 
-// AUTO-GENERATED FILE -- Civix may overwrite any changes made to this file
-// This is a polyfill to allow mixins on older versions of Civi.
-//
-// Of course, the whole point of mixins is to replace boilerplate like this.
-// But you can't completely remove the boilerplate without a compatibility-break.
-// This file should become runtime-irrelevant as sites upgrade.
-
 /**
  * When deploying on systems that lack mixin support, fake it.
  *
