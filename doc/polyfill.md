@@ -9,7 +9,7 @@ a bespoke extension (`myext`, `org.example.myextension`), copy `mixin/polyfill.p
 Load this file during a few key moments:
 
 ```php
-function _myext_civix_mixin() {
+function _myext_mixin_polyfill() {
   if (!class_exists('CRM_Extension_MixInfo')) {
     $polyfill = __DIR__ . '/mixin/polyfill.php';
     (require $polyfill)('org.example.myextension', 'myext', __DIR__);
@@ -17,14 +17,14 @@ function _myext_civix_mixin() {
 }
 
 function myext_civicrm_config() {
-  _myext_civix_mixin();
+  _myext_mixin_polyfill();
 }
 
 function myext_civicrm_install() {
-  _myext_civix_mixin();
+  _myext_mixin_polyfill();
 }
 
 function myext_civicrm_enable() {
-  _myext_civix_mixin();
+  _myext_mixin_polyfill();
 }
 ```
