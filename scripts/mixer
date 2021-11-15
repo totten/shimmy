@@ -1,7 +1,15 @@
 #!/usr/bin/env php
 <?php
 
-require_once dirname(__DIR__) . '/src/MixinHeader.php';
+require_once dirname(__DIR__) . '/src/Mixlib.php';
+
+function mixlib(): Mixlib {
+  static $mixlib;
+  if ($mixlib === NULL) {
+    $mixlib = new Mixlib();
+  }
+  return $mixlib;
+}
 
 /**
  * Generate a test extension which uses the given mixins..
@@ -39,15 +47,14 @@ function task_create(array $options, string $targetDir, ...$mixinNames) {
 
   $mixins = [];
   foreach ($mixinNames as $mixinName) {
-    $mixinFile = mixlib_dir() . "/mixin/$mixinName/mixin.php";
-    $mixins[$mixinName] = MixinHeader::assertValid(MixinHeader::parseFile(assert_file($mixinFile)));
+    $mixins[$mixinName] = mixlib()->assertValid(mixlib()->get($mixinName));
   }
 
   if (empty($options['bare'])) {
     mkdir("$targetDir/mixin");
-    copy(assert_file(mixlib_dir() . '/mixin/polyfill.php'), "$targetDir/mixin/polyfill.php");
+    file_put_contents("$targetDir/mixin/polyfill.php", mixlib()->get('polyfill')['src']);
     foreach ($mixins as $mixin) {
-      copy(assert_file($mixin['file']), "$targetDir/mixin/{$mixin['mixinName']}@{$mixin['mixinVersion']}.mixin.php");
+      file_put_contents("$targetDir/mixin/{$mixin['mixinName']}@{$mixin['mixinVersion']}.mixin.php", $mixin['src']);
     }
   }
 
@@ -103,11 +110,8 @@ function task_test(array $options, string $targetDir, ...$mixinNames) {
 function task_list(array $options, ...$mixinNames) {
   $mixinNames = resolve_mixin_names($mixinNames);
   foreach ($mixinNames as $mixinName) {
-    $mixinBaseName = preg_replace(';@.*$;', '', $mixinName);
-    $mixinRelFile = "mixin/$mixinName/mixin.php";
-    $mixinFile = mixlib_dir() . '/' . $mixinRelFile;
-    $header = MixinHeader::parseFile(assert_file($mixinFile));
-    fprintf(STDOUT, "%-20s %-10s %s\n", $mixinBaseName, $header['version'] ?? '', $header['description'] ?? '');
+    $mixin = mixlib()->get($mixinName);
+    fprintf(STDOUT, "%-20s %-10s %s\n", $mixin['mixinName'], $mixin['mixinVersion'] ?? '', $mixin['description'] ?? '');
   }
 }
 
@@ -173,14 +177,7 @@ function passthru_ok($cmd) {
 
 function resolve_mixin_names(array $mixinNames): array {
   if (empty($mixinNames)) {
-    $dirs = (array) glob(mixlib_dir() . '/mixin/*@*');
-    foreach ($dirs as $dir) {
-      if (is_dir($dir)) {
-        $mixinNames[] = basename($dir);
-      }
-    }
-    sort($mixinNames);
-    return $mixinNames;
+    return mixlib()->getList();
   }
   else {
     return array_map(
