@@ -2,8 +2,18 @@
 
 class Mixlib {
 
+  /**
+   * Local path to the mixlib folder.
+   *
+   * @var string|null
+   */
   private $mixlibDir;
 
+  /**
+   * Public URL of the mixlib folder.
+   *
+   * @var string|null
+   */
   private $mixlibUrl;
 
   private $cache = [];
@@ -16,7 +26,8 @@ class Mixlib {
    */
   public function __construct(?string $mixlibDir = NULL, ?string $mixlibUrl = NULL) {
     $this->mixlibDir = $mixlibDir ?: dirname(__DIR__);
-    $this->mixlibUrl = $mixlibUrl ?: 'https://raw.githubusercontent.com/totten/shimmy/master-reorg'; // FIXME
+    // TOOD Update to real URL.
+    $this->mixlibUrl = $mixlibUrl ?: 'https://raw.githubusercontent.com/totten/shimmy/master-reorg';
   }
 
   public function getList(): array {
@@ -54,12 +65,65 @@ class Mixlib {
   }
 
   /**
+   * Consolidate and retrieve the listed mixins.
+   *
+   * @param array $mixinConstraints
+   *   Ex: ['foo@1.0', 'bar@1.2', 'bar@1.3']
+   * @return array
+   *   Ex: ['foo@1.0' => array, 'bar@1.3' => array]
+   */
+  public function consolidate(array $mixinConstraints): array {
+    // Find and remove duplicate constraints. Pick tightest constraint.
+    // array(string $mixinName => string $mixinVersion)
+    $preferredVersions = [];
+    foreach ($mixinConstraints as $mixinName) {
+      [$name, $version] = explode('@', $mixinName);
+      if (!isset($preferredVersions[$name])) {
+        $preferredVersions[$name] = $version;
+      }
+      elseif (version_compare($version, $preferredVersions[$name], '>=')) {
+        $preferredVersions[$name] = $version;
+      }
+    }
+
+    // Resolve current versions matching constraint.
+    $result = [];
+    foreach ($preferredVersions as $mixinName => $mixinVersion) {
+      $result[] = $mixinName . '@' . $mixinVersion;
+    }
+    return $result;
+  }
+
+  /**
+   * Consolidate and retrieve the listed mixins.
+   *
+   * @param array $mixinConstraints
+   *   Ex: ['foo@1.0', 'bar@1.2', 'bar@1.3']
+   * @return array
+   *   Ex: ['foo@1.0' => array, 'bar@1.3' => array]
+   */
+  public function resolve(array $mixinConstraints): array {
+    $mixinConstraints = $this->consolidate($mixinConstraints);
+
+    $result = [];
+    foreach ($mixinConstraints as $mixinConstraint) {
+      [$expectName, $expectVersion] = explode('@', $mixinConstraint);
+      $mixin = $this->get($mixinConstraint);
+      $this->assertValid($mixin);
+      if (!version_compare($mixin['mixinVersion'], $expectVersion, '>=') || $mixin['mixinName'] !== $expectName) {
+        throw new \RuntimeException(sprintf("Received incompatible version (expected=%s@%s, actual=%s@%s)", $expectName, $expectVersion, $mixin['mixinName'], $mixin['mixinVersion']));
+      }
+      $result[$mixin['mixinName'] . '@' . $mixin['mixinVersion']] = $mixin;
+    }
+    return $result;
+  }
+
+  /**
    * @param string $mixin
    *  Ex: 'foo@1.2.3', 'foo-bar@4.5.6', 'polyfill',
    * @return string
    */
   protected function getSourceCode(string $mixin): string {
-
     if ($mixin === 'polyfill') {
       $file = 'mixin/polyfill.php';
     }
