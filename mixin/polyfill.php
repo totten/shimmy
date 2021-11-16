@@ -14,13 +14,18 @@ return function ($longName, $shortName, $basePath) {
   // number of file-reads, deduping, upgrading)... but they should be OK for a few months while
   // the mixin services become available.
 
-  // List of active mixins and their locations.
-  $mixins = array_map(
-    function($f) {
-      return str_replace('.mixin.php', '', basename($f));
-    },
-    (array) glob($basePath . '/mixin/*.mixin.php')
-  );
+  // List of active mixins; deduped by version
+  $mixinVers = [];
+  foreach ((array) glob($basePath . '/mixin/*.mixin.php') as $f) {
+    [$name, $ver] = explode('@', substr(basename($f), 0, -10));
+    if (!isset($mixinVers[$name]) || version_compare($ver, $mixinVers[$name], '>')) {
+      $mixinVers[$name] = $ver;
+    }
+  }
+  $mixins = [];
+  foreach ($mixinVers as $name => $ver) {
+    $mixins[] = "$name@$ver";
+  }
 
   // Imitate CRM_Extension_MixInfo.
   $mixInfo = new class() {
