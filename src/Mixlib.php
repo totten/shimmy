@@ -50,6 +50,17 @@ class Mixlib {
     return $mixinNames;
   }
 
+  /**
+   * @param string $mixin
+   *
+   * @return array
+   *   Item with keys:
+   *   - mixinName: string, eg 'mgd-php'
+   *   - mixinVersion: string, eg '1.0.2'
+   *   - mixinConstraint: string, eg 'mgd-php@1.0.2'
+   *   - mixinFile: string, eg 'mgd-php@1.0.2.mixin.php'
+   *   - src: string, unevaluated PHP source
+   */
   public function get(string $mixin) {
     if (isset($this->cache["parsed:$mixin"])) {
       return $this->cache["parsed:$mixin"];
@@ -58,6 +69,20 @@ class Mixlib {
     $phpCode = $this->getSourceCode($mixin);
     $mixinSpec = $this->parseString($phpCode);
     $mixinSpec['mixinName'] = $mixinSpec['mixinName'] ?? preg_replace(';@.*$;', '', $mixin);
+
+    $parts = explode('@', $mixin);
+    $effectiveVersion = !empty($mixinSpec['mixinVersion']) ? $mixinSpec['mixinVersion'] : ($parts[1] ?? '');
+    if ($effectiveVersion) {
+      $mixinSpec = array_merge([
+        'mixinConstraint' => $mixinSpec['mixinName'] . '@' . $effectiveVersion,
+        'mixinFile' => $mixinSpec['mixinName'] . '@' . $effectiveVersion . '.mixin.php',
+      ], $mixinSpec);
+    }
+    else {
+      $mixinSpec = array_merge([
+        'mixinFile' => $mixinSpec['mixinName'] . '.mixin.php',
+      ], $mixinSpec);
+    }
     $mixinSpec['src'] = $phpCode;
     $this->cache["parsed:$mixin"] = $mixinSpec;
 
@@ -91,6 +116,7 @@ class Mixlib {
     foreach ($preferredVersions as $mixinName => $mixinVersion) {
       $result[] = $mixinName . '@' . $mixinVersion;
     }
+    sort($result);
     return $result;
   }
 
@@ -111,9 +137,9 @@ class Mixlib {
       $mixin = $this->get($mixinConstraint);
       $this->assertValid($mixin);
       if (!version_compare($mixin['mixinVersion'], $expectVersion, '>=') || $mixin['mixinName'] !== $expectName) {
-        throw new \RuntimeException(sprintf("Received incompatible version (expected=%s@%s, actual=%s@%s)", $expectName, $expectVersion, $mixin['mixinName'], $mixin['mixinVersion']));
+        throw new \RuntimeException(sprintf("Received incompatible version (expected=\"%s@%s\", actual=\"%s@%s\")", $expectName, $expectVersion, $mixin['mixinName'], $mixin['mixinVersion']));
       }
-      $result[$mixin['mixinName'] . '@' . $mixin['mixinVersion']] = $mixin;
+      $result[$mixin['mixinConstraint']] = $mixin;
     }
     return $result;
   }
