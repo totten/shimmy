@@ -3,6 +3,8 @@
 /**
  * When deploying on systems that lack mixin support, fake it.
  *
+ * @mixinFile polyfill.php
+ *
  * This polyfill does some (persnickity) deduplication, but it doesn't allow upgrades or shipping replacements in core.
  *
  * @param string $longName
